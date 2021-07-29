@@ -57,9 +57,9 @@ public class DataParser
                        {
                     	  id = UUIDs.random();
                     	  className = n.getNameAsString();
-                    	  methodName = m.getNameAsString(); 
-                
+                    	  methodName = m.getNameAsString();
                     	  System.out.println(id + " | " + file.getName() + " | " + className + " | " + methodName);
+
                     	  insertData(id, file.getName(), className.toString(), methodName.toString());
                        }
                     }       
@@ -81,10 +81,11 @@ public class DataParser
         StringBuilder sb = new StringBuilder("CREATE TABLE IF NOT EXISTS ")
         		.append(TABLE_NAME)
         		.append(" (")
-        		.append("id UUID PRIMARY KEY, ")
+        		.append("id UUID, ")
         		.append("file text, ")
         		.append("class text, ")
-        		.append("method text);");
+        		.append("method text, ")
+        		.append("PRIMARY KEY ((file, class), method));");
 
         final String query = sb.toString();
         System.out.println(query);
@@ -109,5 +110,27 @@ public class DataParser
         System.out.println(query);
         session.execute(query);
         System.out.println("---Data inserted---");
+    }
+    
+    public void classQuery(String fileName)
+    {
+    	StringBuilder sb = new StringBuilder();
+    	sb.append("CREATE CUSTOM INDEX IF NOT EXISTS classindex ON parseddata." + fileName.replaceAll("[^A-Za-z]", "") + " (class) USING 'org.apache.cassandra.index.sasi.SASIIndex' WITH OPTIONS = {'mode': 'CONTAINS', 'analyzer_class': 'org.apache.cassandra.index.sasi.analyzer.StandardAnalyzer', 'case_sensitive': 'false'};");
+    	String query = sb.toString();
+        System.out.println(query);
+        session.execute(query);
+        String partialMatch = "SELECT * FROM parseddata." + fileName.replaceAll("[^A-Za-z]", "") + " WHERE class LIKE '%Test%' ALLOW FILTERING;";
+        session.execute(partialMatch);	
+    }
+    
+    public void methodQuery(String fileName)
+    {
+    	StringBuilder sb = new StringBuilder();
+    	sb.append("CREATE CUSTOM INDEX IF NOT EXISTS methodindex ON parseddata." + fileName.replaceAll("[^A-Za-z]", "") + " (method) USING 'org.apache.cassandra.index.sasi.SASIIndex' WITH OPTIONS = {'mode': 'CONTAINS', 'analyzer_class': 'org.apache.cassandra.index.sasi.analyzer.StandardAnalyzer', 'case_sensitive': 'false'};");
+    	String query = sb.toString();
+        System.out.println(query);
+        session.execute(query);
+        String partialMatch = "SELECT * FROM parseddata." + fileName.replaceAll("[^A-Za-z]", "") + " WHERE method LIKE '%Test%' ALLOW FILTERING;";
+        session.execute(partialMatch);
     }
 }
